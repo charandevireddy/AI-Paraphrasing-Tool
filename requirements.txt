@@ -3,4 +3,5 @@ torch
 nltk
 pyperclip
 streamlit
-torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+torchvision
+torchaudio
