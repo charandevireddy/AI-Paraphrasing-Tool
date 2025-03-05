@@ -1,7 +1,6 @@
 import streamlit as st
 import torch
 import nltk
-import os
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
@@ -9,18 +8,8 @@ from nltk.tokenize import sent_tokenize
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Fix for Streamlit Watchdog issue
-os.environ["STREAMLIT_WATCHDOG"] = "false"
-
-# Ensure NLTK tokenizer (punkt) is downloaded
-nltk_data_path = os.path.expanduser("~/.nltk_data")
-os.makedirs(nltk_data_path, exist_ok=True)
-nltk.data.path.append(nltk_data_path)
-
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', download_dir=nltk_data_path)
+# Download NLTK tokenizer (punkt)
+nltk.download('punkt')
 
 # Load the paraphrasing model
 @st.cache_resource
@@ -82,7 +71,7 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     user_input = st.text_area("Enter Text", height=150)
-    word_count = len(user_input.split()) if user_input.strip() else 0
+    word_count = len(user_input.split())
     st.write(f"**Word Count:** {word_count}")
 
 with col2:
