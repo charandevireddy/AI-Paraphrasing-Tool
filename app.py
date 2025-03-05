@@ -12,8 +12,12 @@ st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 # Fix for Streamlit Watchdog issue
 os.environ["STREAMLIT_WATCHDOG"] = "false"
 
-# Download NLTK tokenizer (punkt)
-nltk.download('punkt')
+# Ensure NLTK tokenizer (punkt) is downloaded
+nltk_data_path = os.path.expanduser("~/.nltk_data")
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path)
+nltk.data.path.append(nltk_data_path)
+nltk.download('punkt', download_dir=nltk_data_path)
 
 # Load the paraphrasing model
 @st.cache_resource
