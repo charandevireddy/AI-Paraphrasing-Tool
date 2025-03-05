@@ -1,8 +1,5 @@
-pip install --upgrade pip
-streamlit
-pyperclip
-torch
 transformers
+torch
 nltk
-sentencepiece
-punkt
+pyperclip
+streamlit
