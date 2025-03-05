@@ -2,7 +2,6 @@ import streamlit as st
 import torch
 import nltk
 import pyperclip
-import os
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
