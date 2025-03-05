@@ -4,3 +4,4 @@ torch
 transformers
 nltk
 sentencepiece
+punkt
