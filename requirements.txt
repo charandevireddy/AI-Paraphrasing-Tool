@@ -1,5 +1,6 @@
 streamlit
-torch
-nltk
 pyperclip
+torch
 transformers
+nltk
+sentencepiece
