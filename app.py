@@ -28,6 +28,7 @@ try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt', download_dir=nltk_data_path)
+    nltk.download('punkt_tab', download_dir=nltk_data_path)  # Ensure punkt_tab is also downloaded
     nltk.data.find('tokenizers/punkt')  # Ensure it is loaded
 
 # Load the paraphrasing model
