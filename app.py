@@ -14,8 +14,7 @@ os.environ["STREAMLIT_WATCHDOG"] = "false"
 
 # Ensure NLTK tokenizer (punkt) is downloaded
 nltk_data_path = os.path.expanduser("~/.nltk_data")
-if not os.path.exists(nltk_data_path):
-    os.makedirs(nltk_data_path)
+os.makedirs(nltk_data_path, exist_ok=True)
 nltk.data.path.append(nltk_data_path)
 nltk.download('punkt', download_dir=nltk_data_path)
 
@@ -35,7 +34,12 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = sent_tokenize(text)
+    try:
+        sentences = sent_tokenize(text)
+    except LookupError:
+        nltk.download('punkt', download_dir=nltk_data_path)
+        sentences = sent_tokenize(text)
+    
     paraphrased_sentences = []
 
     for sentence in sentences:
