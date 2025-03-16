@@ -1,31 +1,44 @@
 import streamlit as st
 import torch
 import nltk
+import asyncio
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
-# Set Streamlit page configuration
+# ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Download NLTK tokenizer (punkt)
+# ✅ Ensure NLTK Tokenizer (punkt) is Downloaded
 nltk.download('punkt')
 
-# Load the paraphrasing model
+# ✅ Fix for Asyncio Event Loop Conflict
+def get_event_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.new_event_loop()
+
+# ✅ Load Paraphrasing Model (with GPU/CPU Support)
 @st.cache_resource
 def load_model():
     model_name = "humarin/chatgpt_paraphraser_on_T5_base"
+    
+    # ✅ Ensure the event loop is properly set
+    loop = get_event_loop()
+    asyncio.set_event_loop(loop)
+
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
-    
+
     return model, tokenizer, device
 
 model, tokenizer, device = load_model()
 
-# Function to paraphrase text
+# ✅ Function to Paraphrase Text
 def paraphrase_text(text):
     sentences = sent_tokenize(text)
     paraphrased_sentences = []
@@ -52,11 +65,11 @@ def paraphrase_text(text):
 
     return " ".join(paraphrased_sentences)
 
-# Streamlit app layout
-st.title("Paraphrasing Tool")
+# ✅ Streamlit App Layout
+st.title("AI Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a paraphrased version.")
 
-# Sidebar for instructions
+# 🔹 Sidebar Instructions
 st.sidebar.header("Instructions")
 st.sidebar.write(
     "1. Enter your text in the box.\n"
@@ -66,19 +79,20 @@ st.sidebar.write(
     "5. Check the word count before and after paraphrasing."
 )
 
-# User input for the paragraph
+# 🔹 User Input Section
 col1, col2 = st.columns([2, 1])
 
 with col1:
     user_input = st.text_area("Enter Text", height=150)
-    word_count = len(user_input.split())
+    word_count = len(user_input.split()) if user_input.strip() else 0
     st.write(f"**Word Count:** {word_count}")
 
 with col2:
     if st.button("Clear Text"):
-        st.experimental_rerun()  # Clears the input field
+        st.session_state['user_input'] = ""  # Clears the input field
+        st.experimental_rerun()
 
-# Generate paraphrased text
+# 🔹 Paraphrase & Display Results
 if st.button("Paraphrase"):
     if user_input.strip():
         paraphrased_output = paraphrase_text(user_input)
@@ -88,12 +102,12 @@ if st.button("Paraphrase"):
         st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
 
-        # Copy text functionality
+        # ✅ Copy to Clipboard Function
         def copy_to_clipboard(text):
             pyperclip.copy(text)
             st.success("Text copied to clipboard!")
 
-        # Button to copy paraphrased text to clipboard
+        # 🔹 Copy Button
         if st.button("Copy Text"):
             copy_to_clipboard(paraphrased_output)
     else:
