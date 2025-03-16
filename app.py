@@ -5,6 +5,7 @@ import asyncio
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
+import os
 
 # ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
