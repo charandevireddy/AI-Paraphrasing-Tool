@@ -1,4 +1,4 @@
-torch==2.0.1  # or a stable version compatible with your model
+torch==2.0.0
 transformers
 streamlit
 nltk
