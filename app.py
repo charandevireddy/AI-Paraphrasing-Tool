@@ -7,14 +7,14 @@ from nltk.tokenize import sent_tokenize
 
 # Set a fixed download directory for NLTK data
 nltk_data_path = os.path.expanduser("~/.nltk_data")
+os.makedirs(nltk_data_path, exist_ok=True)  # Ensure the directory exists
 nltk.data.path.append(nltk_data_path)
 
-# Ensure required NLTK data is downloaded
-for package in ['punkt']:
-    try:
-        nltk.data.find(f'tokenizers/{package}')
-    except LookupError:
-        nltk.download(package, download_dir=nltk_data_path)
+# Ensure 'punkt' is downloaded (not 'punkt_tab')
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt", download_dir=nltk_data_path)
 
 # Load the paraphrasing model
 @st.cache_resource
