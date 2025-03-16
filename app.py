@@ -25,7 +25,7 @@ def load_model():
 
 model, tokenizer, device = load_model()
 
-# ✅ Function to paraphrase text (Improved for short sentences)
+# ✅ Function to paraphrase text (Fixed for Short & Long Sentences)
 def paraphrase_text(text):
     sentences = sent_tokenize(text)
     paraphrased_sentences = []
@@ -37,16 +37,26 @@ def paraphrase_text(text):
         ).to(device)
 
         with torch.no_grad():
-            output = model.generate(
-                input_ids=encoding["input_ids"],
-                attention_mask=encoding["attention_mask"],
-                max_length=128,
-                num_return_sequences=1,
-                do_sample=True,  # ✅ Enables more diverse outputs
-                temperature=1.2,  # ✅ Adds more variation in the response
-                top_k=50,  # ✅ Controls randomness (higher = more variety)
-                top_p=0.95  # ✅ Nucleus sampling for better diversity
-            )
+            # ✅ Use greedy decoding for short texts (ensures accuracy)
+            if len(sentence.split()) <= 3:
+                output = model.generate(
+                    input_ids=encoding["input_ids"],
+                    attention_mask=encoding["attention_mask"],
+                    max_length=128,
+                    num_return_sequences=1,
+                    do_sample=False  # Ensures accurate paraphrasing for short texts
+                )
+            else:
+                output = model.generate(
+                    input_ids=encoding["input_ids"],
+                    attention_mask=encoding["attention_mask"],
+                    max_length=128,
+                    num_return_sequences=1,
+                    do_sample=True,  # Sampling for variety
+                    temperature=1.0,
+                    top_k=50,
+                    top_p=0.95
+                )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
         paraphrased_sentences.append(paraphrased_sentence)
@@ -80,6 +90,7 @@ with col2:
         st.experimental_rerun()  # Clears the input field
 
 # 🔹 Paraphrase & Display Results
+paraphrased_output = ""
 if st.button("Paraphrase"):
     if user_input.strip():
         paraphrased_output = paraphrase_text(user_input)
@@ -88,14 +99,14 @@ if st.button("Paraphrase"):
         st.subheader("Paraphrased Text:")
         st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
-
-        # ✅ Copy to Clipboard Function
-        def copy_to_clipboard(text):
-            pyperclip.copy(text)
-            st.success("Text copied to clipboard!")
-
-        # 🔹 Copy Button
-        if st.button("Copy Text"):
-            copy_to_clipboard(paraphrased_output)
     else:
         st.warning("Please enter some text to paraphrase.")
+
+# ✅ Copy to Clipboard Function (Fixed)
+if paraphrased_output:
+    def copy_to_clipboard():
+        pyperclip.copy(paraphrased_output)
+        st.success("Text copied to clipboard!")
+
+    if st.button("Copy Text"):
+        copy_to_clipboard()
