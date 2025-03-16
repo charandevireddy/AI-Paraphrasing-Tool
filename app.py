@@ -5,16 +5,16 @@ import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
-# Set Streamlit page configuration
+# ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# ✅ Download all NLTK modules (avoids missing dependency issues)
-nltk.download('all')
+# ✅ Download Only Required NLTK Packages
+nltk.download('punkt')
 
-# ✅ Load the paraphrasing model
+# ✅ Load the Paraphrasing Model
 @st.cache_resource
 def load_model():
-    model_name = "humarin/chatgpt_paraphraser_on_T5_base"
+    model_name = "Vamsi/T5_Paraphrase_Paws"
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -25,9 +25,9 @@ def load_model():
 
 model, tokenizer, device = load_model()
 
-# ✅ Function to paraphrase text (Fixed for Short & Long Sentences)
+# ✅ Function to Paraphrase Text
 def paraphrase_text(text):
-    sentences = sent_tokenize(text)
+    sentences = sent_tokenize(text)  # ✅ NLTK Sentence Tokenization
     paraphrased_sentences = []
 
     for sentence in sentences:
@@ -37,26 +37,12 @@ def paraphrase_text(text):
         ).to(device)
 
         with torch.no_grad():
-            # ✅ Use greedy decoding for short texts (ensures accuracy)
-            if len(sentence.split()) <= 3:
-                output = model.generate(
-                    input_ids=encoding["input_ids"],
-                    attention_mask=encoding["attention_mask"],
-                    max_length=128,
-                    num_return_sequences=1,
-                    do_sample=False  # Ensures accurate paraphrasing for short texts
-                )
-            else:
-                output = model.generate(
-                    input_ids=encoding["input_ids"],
-                    attention_mask=encoding["attention_mask"],
-                    max_length=128,
-                    num_return_sequences=1,
-                    do_sample=True,  # Sampling for variety
-                    temperature=1.0,
-                    top_k=50,
-                    top_p=0.95
-                )
+            output = model.generate(
+                input_ids=encoding["input_ids"],
+                attention_mask=encoding["attention_mask"],
+                max_length=128,
+                num_return_sequences=1  # ✅ Greedy Decoding for Accuracy
+            )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
         paraphrased_sentences.append(paraphrased_sentence)
@@ -67,7 +53,7 @@ def paraphrase_text(text):
 st.title("AI Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a paraphrased version.")
 
-# 🔹 Sidebar for instructions
+# 🔹 Sidebar Instructions
 st.sidebar.header("Instructions")
 st.sidebar.write(
     "1. Enter your text in the box.\n"
@@ -77,7 +63,7 @@ st.sidebar.write(
     "5. Check the word count before and after paraphrasing."
 )
 
-# 🔹 User Input
+# 🔹 User Input Section
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -90,7 +76,6 @@ with col2:
         st.experimental_rerun()  # Clears the input field
 
 # 🔹 Paraphrase & Display Results
-paraphrased_output = ""
 if st.button("Paraphrase"):
     if user_input.strip():
         paraphrased_output = paraphrase_text(user_input)
@@ -99,14 +84,10 @@ if st.button("Paraphrase"):
         st.subheader("Paraphrased Text:")
         st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
+
+        # ✅ Copy to Clipboard Function
+        if st.button("Copy Text"):
+            pyperclip.copy(paraphrased_output)
+            st.success("Text copied to clipboard!")
     else:
         st.warning("Please enter some text to paraphrase.")
-
-# ✅ Copy to Clipboard Function (Fixed)
-if paraphrased_output:
-    def copy_to_clipboard():
-        pyperclip.copy(paraphrased_output)
-        st.success("Text copied to clipboard!")
-
-    if st.button("Copy Text"):
-        copy_to_clipboard()
