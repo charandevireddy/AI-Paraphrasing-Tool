@@ -1,69 +1,58 @@
 import streamlit as st
-import torch
 import nltk
 import os
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+import asyncio
 from nltk.tokenize import sent_tokenize
+from transformers import pipeline
 
-# ✅ Ensure 'punkt' is downloaded (not 'punkt_tab')
+# ✅ Fix NLTK 'punkt' Error
 nltk_data_path = os.path.expanduser("~/.nltk_data")
-os.makedirs(nltk_data_path, exist_ok=True)
-nltk.data.path.append(nltk_data_path)
+os.makedirs(nltk_data_path, exist_ok=True)  # Ensure directory exists
+nltk.data.path.append(nltk_data_path)  # Add path
 
 try:
     nltk.data.find("tokenizers/punkt")
 except LookupError:
     nltk.download("punkt", download_dir=nltk_data_path)
 
-# ✅ Load paraphrasing model with caching
-@st.cache_resource
-def load_model():
-    model_name = "humarin/chatgpt_paraphraser_on_T5_base"
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
-    
-    return model, tokenizer, device
+# ✅ Fix "RuntimeError: no running event loop"
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
-model, tokenizer, device = load_model()
+# ✅ Load Paraphrasing Model
+paraphraser = pipeline("text2text-generation", model="t5-small")
 
-# ✅ Paraphrasing function
+# ✅ Streamlit UI
+st.title("🔄 AI Paraphrasing Tool")
+st.subheader("Enter text to paraphrase")
+
+user_input = st.text_area("Your Text Here", height=150)
+input_word_count = len(user_input.split())
+
+# ✅ Function to paraphrase text
 def paraphrase_text(text):
     sentences = sent_tokenize(text)
     paraphrased_sentences = []
-
+    
     for sentence in sentences:
-        input_text = f"paraphrase: {sentence} </s>"
-        encoding = tokenizer.encode_plus(
-            input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
-        ).to(device)
-
-        with torch.no_grad():
-            output = model.generate(
-                input_ids=encoding["input_ids"],
-                attention_mask=encoding["attention_mask"],
-                max_length=128,
-                num_return_sequences=1,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95
-            )
-
-        paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
-        paraphrased_sentences.append(paraphrased_sentence)
-
+        result = paraphraser(f"paraphrase: {sentence}", max_length=100, truncation=True)
+        paraphrased_sentences.append(result[0]['generated_text'])
+    
     return " ".join(paraphrased_sentences)
 
-# ✅ Streamlit UI
-st.title("AI Paraphrasing Tool")
-user_input = st.text_area("Enter text to paraphrase")
-
+# ✅ Generate paraphrased text
 if st.button("Paraphrase"):
     if user_input.strip():
         paraphrased_output = paraphrase_text(user_input)
-        st.subheader("Paraphrased Text")
-        st.text_area("Output", value=paraphrased_output, height=150)
+        output_word_count = len(paraphrased_output.split())
+
+        st.subheader("Paraphrased Text:")
+        st.write(paraphrased_output)
+
+        # ✅ Show Word Count
+        st.info(f"📌 **Original Word Count:** {input_word_count}")
+        st.success(f"✅ **Paraphrased Word Count:** {output_word_count}")
     else:
-        st.warning("Please enter some text to paraphrase.")
+        st.error("❌ Please enter text to paraphrase!")
