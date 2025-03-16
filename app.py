@@ -2,26 +2,21 @@ import streamlit as st
 import torch
 import nltk
 import os
-import asyncio
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
-import streamlit.components.v1 as components
 
-# ✅ Fix AsyncIO Runtime Error
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.run(asyncio.sleep(0))
-
-# ✅ Ensure NLTK 'punkt' is downloaded
+# Set a fixed download directory for NLTK data
 nltk_data_path = os.path.expanduser("~/.nltk_data")
-if not os.path.exists(nltk_data_path):
-    nltk.download('punkt')
+nltk.data.path.append(nltk_data_path)
 
-# ✅ Set Streamlit page configuration
-st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
+# Ensure required NLTK data is downloaded
+for package in ['punkt']:
+    try:
+        nltk.data.find(f'tokenizers/{package}')
+    except LookupError:
+        nltk.download(package, download_dir=nltk_data_path)
 
-# ✅ Load the paraphrasing model
+# Load the paraphrasing model
 @st.cache_resource
 def load_model():
     model_name = "humarin/chatgpt_paraphraser_on_T5_base"
@@ -35,7 +30,7 @@ def load_model():
 
 model, tokenizer, device = load_model()
 
-# ✅ Function to paraphrase text
+# Function to paraphrase text
 def paraphrase_text(text):
     sentences = sent_tokenize(text)
     paraphrased_sentences = []
@@ -62,24 +57,11 @@ def paraphrase_text(text):
 
     return " ".join(paraphrased_sentences)
 
-# ✅ Function to copy text using JavaScript (fix for cloud environments)
-def copy_to_clipboard(text):
-    components.html(f"""
-    <script>
-    function copyText() {{
-        navigator.clipboard.writeText(`{text}`).then(function() {{
-            alert("Text copied to clipboard!");
-        }});
-    }}
-    </script>
-    <button onclick="copyText()">Copy Text</button>
-    """, height=50)
-
-# ✅ Streamlit app layout
+# Streamlit app layout
 st.title("Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a paraphrased version.")
 
-# ✅ Sidebar instructions
+# Sidebar for instructions
 st.sidebar.header("Instructions")
 st.sidebar.write(
     "1. Enter your text in the box.\n"
@@ -89,7 +71,7 @@ st.sidebar.write(
     "5. Check the word count before and after paraphrasing."
 )
 
-# ✅ User input for the paragraph
+# User input for the paragraph
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -101,7 +83,7 @@ with col2:
     if st.button("Clear Text"):
         st.experimental_rerun()  # Clears the input field
 
-# ✅ Generate paraphrased text
+# Generate paraphrased text
 if st.button("Paraphrase"):
     if user_input.strip():
         paraphrased_output = paraphrase_text(user_input)
@@ -111,7 +93,5 @@ if st.button("Paraphrase"):
         st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
 
-        # ✅ Copy button using JavaScript
-        copy_to_clipboard(paraphrased_output)
     else:
         st.warning("Please enter some text to paraphrase.")
