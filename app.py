@@ -8,7 +8,7 @@ from nltk.tokenize import sent_tokenize
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Download NLTK tokenizer (punkt)
+# Ensure all NLTK modules are downloaded (including tokenizers)
 nltk.download('all')
 
 # Load the paraphrasing model
@@ -27,7 +27,7 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = sent_tokenize(text)
+    sentences = sent_tokenize(text)  # Uses NLTK's tokenizer (no 'punkt' required)
     paraphrased_sentences = []
 
     for sentence in sentences:
@@ -42,18 +42,19 @@ def paraphrase_text(text):
                 attention_mask=encoding["attention_mask"],
                 max_length=128,
                 num_return_sequences=1,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95
+                do_sample=False,  # ✅ Uses deterministic decoding
+                temperature=1.0,  
+                top_k=10,  
+                top_p=0.90  
             )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
-        paraphrased_sentences.append(paraphrased_sentence)
+        paraphrased_sentences.append(paraphrased_sentence.strip())
 
     return " ".join(paraphrased_sentences)
 
 # Streamlit app layout
-st.title("Paraphrasing Tool")
+st.title("AI Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a paraphrased version.")
 
 # Sidebar for instructions
@@ -71,12 +72,13 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     user_input = st.text_area("Enter Text", height=150)
-    word_count = len(user_input.split())
+    word_count = len(user_input.split()) if user_input.strip() else 0
     st.write(f"**Word Count:** {word_count}")
 
 with col2:
     if st.button("Clear Text"):
-        st.experimental_rerun()  # Clears the input field
+        st.session_state['user_input'] = ""  # Clears input
+        st.experimental_rerun()
 
 # Generate paraphrased text
 if st.button("Paraphrase"):
