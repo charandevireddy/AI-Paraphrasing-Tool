@@ -1,7 +1,7 @@
+torch==2.0.1  # or a stable version compatible with your model
+transformers
 streamlit
 nltk
-transformers
-torch
 pyperclip
 torchvision
 torchaudio
