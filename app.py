@@ -9,7 +9,7 @@ from nltk.tokenize import sent_tokenize
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
 # Download NLTK tokenizer (punkt)
-nltk.download('punkt')
+nltk.download('all')
 
 # Load the paraphrasing model
 @st.cache_resource
