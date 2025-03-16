@@ -1,23 +1,21 @@
-import os
 import streamlit as st
 import torch
 import nltk
 import asyncio
 import pyperclip
+import os
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
 # ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# ✅ Define NLTK Data Directory & Download 'punkt'
-nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
-
-if not os.path.exists(nltk_data_dir):
-    os.makedirs(nltk_data_dir)
-
-nltk.data.path.append(nltk_data_dir)
-nltk.download('punkt', download_dir=nltk_data_dir)
+# ✅ Ensure NLTK Tokenizer (punkt) is Downloaded
+nltk_data_path = os.path.join(os.getcwd(), "nltk_data")
+if not os.path.exists(nltk_data_path):
+    os.makedirs(nltk_data_path)
+nltk.data.path.append(nltk_data_path)
+nltk.download("punkt", download_dir=nltk_data_path)
 
 # ✅ Fix for Asyncio Event Loop Conflict
 def get_event_loop():
@@ -31,18 +29,20 @@ def get_event_loop():
 def load_model():
     model_name = "humarin/chatgpt_paraphraser_on_T5_base"
     
-    # Ensure event loop is properly set
+    # ✅ Ensure the event loop is properly set
     loop = get_event_loop()
     asyncio.set_event_loop(loop)
 
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
+    # ✅ Handle CUDA/CPU automatically
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
     return model, tokenizer, device
 
+# ✅ Load model once and store it globally
 model, tokenizer, device = load_model()
 
 # ✅ Function to Paraphrase Text
