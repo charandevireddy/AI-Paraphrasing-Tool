@@ -25,7 +25,7 @@ def load_model():
 
 model, tokenizer, device = load_model()
 
-# ✅ Function to paraphrase text (Greedy Decoding)
+# ✅ Function to paraphrase text (Improved for short sentences)
 def paraphrase_text(text):
     sentences = sent_tokenize(text)
     paraphrased_sentences = []
@@ -41,7 +41,11 @@ def paraphrase_text(text):
                 input_ids=encoding["input_ids"],
                 attention_mask=encoding["attention_mask"],
                 max_length=128,
-                num_return_sequences=1  # ✅ Greedy Decoding for best accuracy
+                num_return_sequences=1,
+                do_sample=True,  # ✅ Enables more diverse outputs
+                temperature=1.2,  # ✅ Adds more variation in the response
+                top_k=50,  # ✅ Controls randomness (higher = more variety)
+                top_p=0.95  # ✅ Nucleus sampling for better diversity
             )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
