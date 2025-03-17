@@ -4,7 +4,7 @@ import nltk
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
-# ✅ Set Streamlit page configuration
+# ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
 # ✅ Download NLTK tokenizer (punkt) for sentence segmentation
@@ -25,7 +25,7 @@ def load_model():
 # Load the model
 model, tokenizer, device = load_model()
 
-# ✅ Function to paraphrase text
+# ✅ Function to Paraphrase Text
 def paraphrase_text(text):
     if not text.strip():
         return "Please enter text to paraphrase."
@@ -59,41 +59,42 @@ def paraphrase_text(text):
     return " ".join(paraphrased_sentences)
 
 # ✅ Streamlit App UI
-st.title("AI Paraphrasing Tool")
+st.title("🔄 AI Paraphrasing Tool")
 st.write("Enter a paragraph below and click **Paraphrase** to generate a reworded version.")
 
 # ✅ Sidebar Instructions
 st.sidebar.header("📌 Instructions")
 st.sidebar.write(
-    "1️⃣ Enter text in the box.\n"
-    "2️⃣ Click 'Paraphrase' to generate a paraphrased version.\n"
-    "3️⃣ Click 'Clear Text' to reset the input field.\n"
-    "4️⃣ Check word count before and after paraphrasing."
+    """
+    **How to Use?**
+    1️⃣ Enter your text in the box.  
+    2️⃣ Click **"Paraphrase"** to generate a paraphrased version.  
+    3️⃣ Click **"Clear Text"** to reset the input field.  
+    4️⃣ Check the word count before and after paraphrasing.  
+    """
 )
 
 # ✅ User Input
-user_input = st.text_area("Enter Text", value="", height=150, key="user_input")
+st.subheader("✍ Enter Text:")
+user_input = st.text_area("", value="", height=150, key="user_input")
 
 # ✅ Word Count Display
 word_count = len(user_input.split())
-st.write(f"**Word Count:** {word_count}")
+st.markdown(f"**📝 Word Count:** `{word_count}`")
 
-# ✅ Buttons for Actions
-col1, col2 = st.columns([1, 1])
+# ✅ Buttons for Actions (Aligned Properly)
+col1, col2 = st.columns(2)
 
-# 🔹 Clear Text Button (Resets Input Field)
 with col1:
-    if st.button("Clear Text"):
+    if st.button("❌ Clear Text"):
         st.session_state["user_input"] = ""
 
-# 🔹 Paraphrase Button
 with col2:
-    if st.button("Paraphrase"):
+    if st.button("🔄 Paraphrase"):
         with st.spinner("Paraphrasing... ⏳"):
             paraphrased_output = paraphrase_text(user_input)
             output_word_count = len(paraphrased_output.split())
 
-            st.subheader("Paraphrased Text:")
-            st.text_area("Output", value=paraphrased_output, height=150, key="output")
-            st.write(f"**Paraphrased Word Count:** {output_word_count}")
-
+            st.subheader("🔹 Paraphrased Text:")
+            st.text_area("", value=paraphrased_output, height=150, key="output")
+            st.markdown(f"**📊 Paraphrased Word Count:** `{output_word_count}`")
