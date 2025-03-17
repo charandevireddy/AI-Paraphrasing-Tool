@@ -4,7 +4,7 @@ import asyncio
 import nltk
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import TreebankWordTokenizer
+from nltk.tokenize import sent_tokenize
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -14,9 +14,6 @@ except RuntimeError:
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
-
-# Use Treebank tokenizer instead of punkt
-tokenizer_nltk = TreebankWordTokenizer()
 
 # Load the paraphrasing model
 @st.cache_resource
@@ -34,30 +31,29 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    # Tokenizing text using Treebank tokenizer
-    words = tokenizer_nltk.tokenize(text)
-    sentences = [" ".join(words)]  # Treat as a single sentence
-
+    sentences = text.split(". ")  # Simple sentence splitting
     paraphrased_sentences = []
+
     for sentence in sentences:
-        input_text = f"paraphrase: {sentence} </s>"
-        encoding = tokenizer.encode_plus(
-            input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
-        ).to(device)
+        if sentence.strip():  # Avoid processing empty sentences
+            input_text = f"paraphrase: {sentence} </s>"
+            encoding = tokenizer.encode_plus(
+                input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
+            ).to(device)
 
-        with torch.no_grad():
-            output = model.generate(
-                input_ids=encoding["input_ids"],
-                attention_mask=encoding["attention_mask"],
-                max_length=128,
-                num_return_sequences=1,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95
-            )
+            with torch.no_grad():
+                output = model.generate(
+                    input_ids=encoding["input_ids"],
+                    attention_mask=encoding["attention_mask"],
+                    max_length=128,
+                    num_return_sequences=1,
+                    do_sample=True,
+                    top_k=50,
+                    top_p=0.95
+                )
 
-        paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
-        paraphrased_sentences.append(paraphrased_sentence)
+            paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
+            paraphrased_sentences.append(paraphrased_sentence)
 
     return " ".join(paraphrased_sentences)
 
