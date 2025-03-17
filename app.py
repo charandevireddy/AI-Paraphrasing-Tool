@@ -3,8 +3,10 @@ import torch
 import asyncio
 import nltk
 import pyperclip
+import os
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
+from nltk.data import find
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -15,8 +17,17 @@ except RuntimeError:
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Manually download Punkt tokenizer
-nltk.download('punkt')
+# Manually download Punkt tokenizer if not found
+nltk_data_dir = os.path.expanduser("~") + "/nltk_data"
+os.makedirs(nltk_data_dir, exist_ok=True)
+
+try:
+    find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt", download_dir=nltk_data_dir)
+
+# Set NLTK data path
+nltk.data.path.append(nltk_data_dir)
 
 # Load the paraphrasing model
 @st.cache_resource
