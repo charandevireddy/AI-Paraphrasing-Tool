@@ -3,10 +3,8 @@ import torch
 import asyncio
 import nltk
 import pyperclip
-import os
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import sent_tokenize
-from nltk.data import find
+from nltk.tokenize import TreebankWordTokenizer
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -17,17 +15,8 @@ except RuntimeError:
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Manually download Punkt tokenizer if not found
-nltk_data_dir = os.path.expanduser("~") + "/nltk_data"
-os.makedirs(nltk_data_dir, exist_ok=True)
-
-try:
-    find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt", download_dir=nltk_data_dir)
-
-# Set NLTK data path
-nltk.data.path.append(nltk_data_dir)
+# Use Treebank tokenizer instead of punkt
+tokenizer_nltk = TreebankWordTokenizer()
 
 # Load the paraphrasing model
 @st.cache_resource
@@ -45,9 +34,11 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = sent_tokenize(text)  # Corrected sentence segmentation
-    paraphrased_sentences = []
+    # Tokenizing text using Treebank tokenizer
+    words = tokenizer_nltk.tokenize(text)
+    sentences = [" ".join(words)]  # Treat as a single sentence
 
+    paraphrased_sentences = []
     for sentence in sentences:
         input_text = f"paraphrase: {sentence} </s>"
         encoding = tokenizer.encode_plus(
