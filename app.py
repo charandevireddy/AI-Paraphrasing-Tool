@@ -4,7 +4,7 @@ import asyncio
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-# Fix for Streamlit Cloud event loop issue
+# 🔧 Fix for "RuntimeError: no running event loop"
 try:
     asyncio.set_event_loop(asyncio.new_event_loop())
 except RuntimeError:
