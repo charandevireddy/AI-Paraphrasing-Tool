@@ -7,18 +7,21 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 from nltk.data import find
 
-# ✅ Fix SSL issue (in case Streamlit Cloud has SSL errors)
+# ✅ Fix SSL issue (for safe downloads in Streamlit Cloud)
 try:
     _create_unverified_https_context = ssl._create_unverified_context
     ssl._create_default_https_context = _create_unverified_https_context
 except AttributeError:
     pass
 
-# ✅ Ensure 'punkt' tokenizer is available before usage
-try:
-    find('tokenizers/punkt.zip')
-except LookupError:
-    nltk.download('punkt')
+# ✅ Manually set NLTK data path to ensure 'punkt' is available
+NLTK_DATA_PATH = os.path.join(os.getcwd(), "nltk_data")  # Cache in project folder
+nltk.data.path.append(NLTK_DATA_PATH)
+
+# ✅ Ensure 'punkt' is downloaded and stored persistently
+if not os.path.exists(os.path.join(NLTK_DATA_PATH, "tokenizers/punkt")):
+    os.makedirs(NLTK_DATA_PATH, exist_ok=True)  # Ensure directory exists
+    nltk.download('punkt', download_dir=NLTK_DATA_PATH)
 
 # ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
