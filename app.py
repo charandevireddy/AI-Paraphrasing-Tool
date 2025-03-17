@@ -5,21 +5,21 @@ import os
 import ssl
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
-from nltk.data import find
 
-# ✅ Fix SSL issue (for safe downloads in Streamlit Cloud)
+# ✅ Fix SSL issue (for downloading in Streamlit Cloud)
 try:
     _create_unverified_https_context = ssl._create_unverified_context
     ssl._create_default_https_context = _create_unverified_https_context
 except AttributeError:
     pass
 
-# ✅ Manually set NLTK data path to ensure 'punkt' is available
-NLTK_DATA_PATH = os.path.join(os.getcwd(), "nltk_data")  # Cache in project folder
+# ✅ Set up persistent NLTK data path
+NLTK_DATA_PATH = os.path.join(os.getcwd(), "nltk_data")  # Store in project folder
 nltk.data.path.append(NLTK_DATA_PATH)
 
-# ✅ Ensure 'punkt' is downloaded and stored persistently
-if not os.path.exists(os.path.join(NLTK_DATA_PATH, "tokenizers/punkt")):
+# ✅ Ensure 'punkt' is downloaded
+punkt_path = os.path.join(NLTK_DATA_PATH, "tokenizers/punkt")
+if not os.path.exists(punkt_path):
     os.makedirs(NLTK_DATA_PATH, exist_ok=True)  # Ensure directory exists
     nltk.download('punkt', download_dir=NLTK_DATA_PATH)
 
@@ -45,6 +45,12 @@ model, tokenizer, device = load_model()
 def paraphrase_text(text):
     if not text.strip():
         return "Please enter text to paraphrase."
+
+    # ✅ Manually ensure `punkt` is loaded before calling `sent_tokenize`
+    try:
+        sent_tokenize("Test sentence.")
+    except LookupError:
+        nltk.download('punkt', download_dir=NLTK_DATA_PATH)
 
     sentences = sent_tokenize(text)  # Sentence segmentation
     paraphrased_sentences = []
