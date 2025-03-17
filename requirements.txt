@@ -1,7 +1,9 @@
-torch==2.2.0
+torch
 transformers
 streamlit
 nltk
 pyperclip
 torchvision
 torchaudio
+tiktoken
+blobfile
