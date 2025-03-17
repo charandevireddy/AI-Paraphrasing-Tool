@@ -1,83 +1,99 @@
-import os
 import streamlit as st
 import torch
 import nltk
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
 
-# ✅ Set Streamlit Page Configuration (Title & Layout)
+# ✅ Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# ✅ Set a fixed directory for NLTK data (Prevents Lookup Errors)
-NLTK_DIR = os.path.join(os.getcwd(), "nltk_data")  
-nltk.data.path.append(NLTK_DIR)
+# ✅ Download NLTK tokenizer (punkt) for sentence segmentation
+nltk.download('punkt')
 
-# ✅ Download the required NLTK package (Ensures sentence tokenization works)
-nltk.download('punkt', download_dir=NLTK_DIR)
-
-# ✅ Load the Paraphrasing Model (Caches for performance)
+# ✅ Load the paraphrasing model (Cached for efficiency)
 @st.cache_resource
 def load_model():
-    # 🔹 Load the T5-based paraphrasing model from Hugging Face
-    model_name = "Vamsi/T5_Paraphrase_Paws"
+    model_name = "humarin/chatgpt_paraphraser_on_T5_base"
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    # 🔹 Force model to run on CPU (Streamlit Cloud does not support GPU)
-    device = torch.device("cpu")
+    device = torch.device("cpu")  # Streamlit Cloud does NOT support GPU
     model.to(device)
 
     return model, tokenizer, device
 
-# ✅ Load the model when the app starts
+# Load the model
 model, tokenizer, device = load_model()
 
-# ✅ Function to Paraphrase Text
+# ✅ Function to paraphrase text
 def paraphrase_text(text):
-    if not text.strip():  # 🔹 Prevents empty input errors
+    if not text.strip():
         return "Please enter text to paraphrase."
 
-    sentences = sent_tokenize(text)  # 🔹 Sentence tokenization using NLTK
+    sentences = sent_tokenize(text)  # Sentence segmentation
     paraphrased_sentences = []
 
     for sentence in sentences:
-        # 🔹 Prepares the text in the correct format for the model
         input_text = f"paraphrase: {sentence} </s>"
         encoding = tokenizer.encode_plus(
             input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
         )
+        
+        input_ids = encoding["input_ids"].to(device)
+        attention_mask = encoding["attention_mask"].to(device)
 
-        # 🔹 Move input tensors to CPU
-        input_ids = encoding["input_ids"].to("cpu")
-        attention_mask = encoding["attention_mask"].to("cpu")
+        with torch.no_grad():
+            output = model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=128,
+                num_return_sequences=1,
+                do_sample=True,
+                top_k=50,
+                top_p=0.95
+            )
 
-        # 🔹 Generate paraphrased output using the model
-        output = model.generate(
-            input_ids=input_ids, attention_mask=attention_mask,
-            max_length=128, num_return_sequences=1
-        )
-
-        # 🔹 Decode the generated text into a readable format
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
         paraphrased_sentences.append(paraphrased_sentence)
 
-    return " ".join(paraphrased_sentences)  # 🔹 Join sentences into final output
+    return " ".join(paraphrased_sentences)
 
-# ✅ Streamlit UI (Frontend)
-st.title("AI Paraphrasing Tool")  # 🔹 App Title
-st.write("Enter text below and click **Paraphrase** to generate a new version.")  # 🔹 Instructions
+# ✅ Streamlit App UI
+st.title("AI Paraphrasing Tool")
+st.write("Enter a paragraph below and click **Paraphrase** to generate a reworded version.")
 
-# 🔹 User input field for text
-user_input = st.text_area("Enter your text here:", height=150)
+# ✅ Sidebar Instructions
+st.sidebar.header("📌 Instructions")
+st.sidebar.write(
+    "1️⃣ Enter text in the box.\n"
+    "2️⃣ Click 'Paraphrase' to generate a paraphrased version.\n"
+    "3️⃣ Click 'Clear Text' to reset the input field.\n"
+    "4️⃣ Check word count before and after paraphrasing."
+)
 
-# 🔹 When the "Paraphrase" button is clicked
-if st.button("Paraphrase"):
-    with st.spinner("Paraphrasing... ⏳"):  # 🔹 Loading spinner for better UX
-        paraphrased_output = paraphrase_text(user_input)  # 🔹 Get paraphrased text
-        st.subheader("Paraphrased Text")  # 🔹 Display paraphrased text
-        st.write(paraphrased_output)
+# ✅ User Input
+user_input = st.text_area("Enter Text", value="", height=150, key="user_input")
 
-# ✅ Footer Section
-st.markdown("---")
-st.markdown("🚀 Built with [Streamlit](https://streamlit.io/) & [Hugging Face Transformers](https://huggingface.co/)")
+# ✅ Word Count Display
+word_count = len(user_input.split())
+st.write(f"**Word Count:** {word_count}")
+
+# ✅ Buttons for Actions
+col1, col2 = st.columns([1, 1])
+
+# 🔹 Clear Text Button (Resets Input Field)
+with col1:
+    if st.button("Clear Text"):
+        st.session_state["user_input"] = ""
+
+# 🔹 Paraphrase Button
+with col2:
+    if st.button("Paraphrase"):
+        with st.spinner("Paraphrasing... ⏳"):
+            paraphrased_output = paraphrase_text(user_input)
+            output_word_count = len(paraphrased_output.split())
+
+            st.subheader("Paraphrased Text:")
+            st.text_area("Output", value=paraphrased_output, height=150, key="output")
+            st.write(f"**Paraphrased Word Count:** {output_word_count}")
 
