@@ -1,29 +1,10 @@
 import streamlit as st
 import torch
 import nltk
-import os
-import ssl
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import TreebankWordTokenizer
 
-# ✅ Fix SSL issue (for downloading in Streamlit Cloud)
-try:
-    _create_unverified_https_context = ssl._create_unverified_context
-    ssl._create_default_https_context = _create_unverified_https_context
-except AttributeError:
-    pass
-
-# ✅ Set up persistent NLTK data path
-NLTK_DATA_PATH = os.path.join(os.getcwd(), "nltk_data")  # Store in project folder
-nltk.data.path.append(NLTK_DATA_PATH)
-
-# ✅ Ensure 'punkt' is downloaded
-punkt_path = os.path.join(NLTK_DATA_PATH, "tokenizers/punkt")
-if not os.path.exists(punkt_path):
-    os.makedirs(NLTK_DATA_PATH, exist_ok=True)  # Ensure directory exists
-    nltk.download('punkt', download_dir=NLTK_DATA_PATH)
-
-# ✅ Set Streamlit Page Configuration
+# ✅ Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
 # ✅ Load the paraphrasing model (Cached for efficiency)
@@ -41,18 +22,16 @@ def load_model():
 # Load the model
 model, tokenizer, device = load_model()
 
+# ✅ Initialize TreebankWordTokenizer (Replacement for Punkt)
+tokenizer_nltk = TreebankWordTokenizer()
+
 # ✅ Function to Paraphrase Text
 def paraphrase_text(text):
     if not text.strip():
         return "Please enter text to paraphrase."
 
-    # ✅ Manually ensure `punkt` is loaded before calling `sent_tokenize`
-    try:
-        sent_tokenize("Test sentence.")
-    except LookupError:
-        nltk.download('punkt', download_dir=NLTK_DATA_PATH)
-
-    sentences = sent_tokenize(text)  # Sentence segmentation
+    # ✅ Sentence Segmentation (Alternative to sent_tokenize)
+    sentences = text.split(". ")  # Simple sentence splitting
     paraphrased_sentences = []
 
     for sentence in sentences:
