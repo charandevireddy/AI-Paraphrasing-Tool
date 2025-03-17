@@ -1,10 +1,8 @@
 import streamlit as st
 import torch
 import asyncio
-import nltk
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import word_tokenize
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -14,9 +12,6 @@ except RuntimeError:
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
-
-# Download necessary NLTK data (avoid punkt)
-nltk.download('averaged_perceptron_tagger')
 
 # Initialize session state variables
 if "output" not in st.session_state:
@@ -38,11 +33,11 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    words = word_tokenize(text)  # Using word tokenization instead of sent_tokenize
+    sentences = [s.strip() for s in text.split(".") if s.strip()]  # Simple sentence splitting
     paraphrased_sentences = []
 
-    for word in words:
-        input_text = f"paraphrase: {word} </s>"
+    for sentence in sentences:
+        input_text = f"paraphrase: {sentence} </s>"
         encoding = tokenizer.encode_plus(
             input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
         ).to(device)
