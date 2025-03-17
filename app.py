@@ -1,14 +1,27 @@
 import streamlit as st
 import torch
 import nltk
+import os
+import ssl
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
+from nltk.data import find
+
+# ✅ Fix SSL issue (in case Streamlit Cloud has SSL errors)
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+    ssl._create_default_https_context = _create_unverified_https_context
+except AttributeError:
+    pass
+
+# ✅ Ensure 'punkt' tokenizer is available before usage
+try:
+    find('tokenizers/punkt.zip')
+except LookupError:
+    nltk.download('punkt')
 
 # ✅ Set Streamlit Page Configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
-
-# ✅ Download NLTK tokenizer (punkt) for sentence segmentation
-nltk.download('punkt')
 
 # ✅ Load the paraphrasing model (Cached for efficiency)
 @st.cache_resource
