@@ -4,7 +4,7 @@ import asyncio
 import nltk
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import TreebankWordTokenizer
+from nltk.tokenize import sent_tokenize
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -15,8 +15,8 @@ except RuntimeError:
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Download NLTK tokenizer
-nltk.download('treebank')
+# Manually download Punkt tokenizer
+nltk.download('punkt')
 
 # Load the paraphrasing model
 @st.cache_resource
@@ -34,8 +34,7 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    tokenizer_nltk = TreebankWordTokenizer()
-    sentences = tokenizer_nltk.tokenize(text)  # Use Treebank tokenizer instead of punkt
+    sentences = sent_tokenize(text)  # Corrected sentence segmentation
     paraphrased_sentences = []
 
     for sentence in sentences:
