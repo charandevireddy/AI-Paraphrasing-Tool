@@ -4,7 +4,7 @@ import asyncio
 import nltk
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import TreebankWordTokenizer
 
 # Fix for Streamlit Cloud event loop issue
 try:
@@ -31,7 +31,8 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = text.split(". ")  # Simple sentence splitting
+    tokenizer_nltk = TreebankWordTokenizer()
+    sentences = tokenizer_nltk.tokenize(text)  # Alternative to sent_tokenize without punkt
     paraphrased_sentences = []
 
     for sentence in sentences:
@@ -48,8 +49,8 @@ def paraphrase_text(text):
                     max_length=128,
                     num_return_sequences=1,
                     do_sample=True,
-                    top_k=50,
-                    top_p=0.95
+                    top_k=40,  # Reduced randomness for more accurate paraphrasing
+                    top_p=0.90
                 )
 
             paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -81,6 +82,7 @@ with col1:
 
 with col2:
     if st.button("Clear Text"):
+        st.session_state["output"] = ""
         st.experimental_rerun()  # Clears the input field
 
 # Generate paraphrased text
@@ -93,13 +95,13 @@ if st.button("Paraphrase"):
         st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
 
-        # Copy text functionality
-        def copy_to_clipboard(text):
-            pyperclip.copy(text)
-            st.success("Text copied to clipboard!")
-
-        # Button to copy paraphrased text to clipboard
-        if st.button("Copy Text"):
-            copy_to_clipboard(paraphrased_output)
+        # Store paraphrased text in session state for persistence
+        st.session_state["output"] = paraphrased_output
     else:
         st.warning("Please enter some text to paraphrase.")
+
+# Button to copy paraphrased text to clipboard
+if "output" in st.session_state and st.session_state["output"]:
+    if st.button("Copy Text"):
+        pyperclip.copy(st.session_state["output"])
+        st.success("Text copied to clipboard!")
