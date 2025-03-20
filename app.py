@@ -2,6 +2,7 @@ import streamlit as st
 import torch
 import nltk
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from nltk.tokenize import sent_tokenize
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
@@ -26,32 +27,29 @@ model, tokenizer, device = load_model()
 # Function to paraphrase text
 def paraphrase_text(text):
     try:
-        # Sentence tokenization with fallback
-        sentences = nltk.tokenize.sent_tokenize(text) if "punkt" in nltk.data.path else text.split(". ")
-
+        sentences = sent_tokenize(text)  # Ensure proper sentence tokenization
         paraphrased_sentences = []
 
         for sentence in sentences:
-            sentence = sentence.strip()
-            if not sentence:
+            if not sentence.strip():
                 continue  # Skip empty sentences
 
             input_text = f"paraphrase: {sentence}"
             encoding = tokenizer.encode_plus(
-                input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
+                input_text, return_tensors="pt", padding="max_length", max_length=256, truncation=True
             ).to(device)
 
             with torch.no_grad():
                 output = model.generate(
                     input_ids=encoding["input_ids"],
                     attention_mask=encoding["attention_mask"],
-                    max_length=128,
+                    max_length=256,
                     num_return_sequences=1,
                     do_sample=True,
                     top_k=50,
                     top_p=0.95,
-                    temperature=0.8,
-                    repetition_penalty=1.5  # Lowered to reduce gibberish
+                    temperature=0.7,
+                    repetition_penalty=3.0  # Higher penalty to reduce repeated words
                 )
 
             paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
