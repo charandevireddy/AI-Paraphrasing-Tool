@@ -2,26 +2,28 @@ import streamlit as st
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import nltk
-import asyncio
+import os
+import re
 
-# ✅ Fix Asyncio issue
-try:
-    loop = asyncio.get_running_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+# ✅ Set page config as the first Streamlit command
+st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
+
+# ✅ Set a custom NLTK data directory (if needed)
+nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
+os.makedirs(nltk_data_dir, exist_ok=True)
+nltk.data.path.append(nltk_data_dir)
 
 # ✅ Ensure NLTK punkt and its resources are downloaded
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     # Force re-download the punkt package
-    nltk.download('punkt', force=True)
+    nltk.download('punkt', download_dir=nltk_data_dir, force=True)
 
 # ✅ Load the paraphrasing model
 @st.cache_resource
 def load_model():
-    model_name = "humarin/chatgpt_paraphraser_on_T5_base"
+    model_name = "t5-small"  # Replace with a different model if needed
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     
@@ -31,6 +33,13 @@ def load_model():
     return model, tokenizer, device
 
 model, tokenizer, device = load_model()
+
+# ✅ Function to preprocess input text
+def preprocess_text(text):
+    # Remove special characters and extra spaces
+    text = re.sub(r'[^\w\s.,!?]', '', text)  # Keep only alphanumeric, spaces, and basic punctuation
+    text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces with a single space
+    return text.strip()
 
 # ✅ Function to paraphrase text
 def paraphrase_text(text):
@@ -42,7 +51,7 @@ def paraphrase_text(text):
             if not sentence.strip():
                 continue  # Skip empty sentences
 
-            input_text = f"paraphrase this: {sentence}"
+            input_text = f"paraphrase: {sentence}"  # Updated input format
             encoding = tokenizer.encode_plus(
                 input_text, return_tensors="pt", padding="max_length", max_length=256, truncation=True
             ).to(device)
@@ -54,22 +63,26 @@ def paraphrase_text(text):
                     max_length=256,
                     num_return_sequences=1,
                     do_sample=True,
-                    top_k=10,
-                    top_p=0.9,
-                    temperature=0.7,
-                    repetition_penalty=2.5
+                    top_k=50,  # Adjust for diversity
+                    top_p=0.95,  # Adjust for diversity
+                    temperature=0.7,  # Lower for less randomness
+                    repetition_penalty=2.5  # Penalize repetition
                 )
 
             paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
             paraphrased_sentences.append(paraphrased_sentence)
 
+            # Debug: Print input and output
+            st.write(f"**Input Sentence:** {sentence}")
+            st.write(f"**Paraphrased Sentence:** {paraphrased_sentence}")
+
         return " ".join(paraphrased_sentences)
 
     except Exception as e:
-        return f"❌ Error in paraphrasing: {str(e)}"
+        st.error(f"❌ Error in paraphrasing: {str(e)}")
+        return None
 
 # ✅ Streamlit UI Setup
-st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 st.title("🚀 AI Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a **paraphrased version** using AI.")
 
@@ -83,7 +96,7 @@ st.sidebar.write(
     "5️⃣ Check the **word count** before and after paraphrasing."
 )
 st.sidebar.header("🔗 About This App")
-st.sidebar.write("This AI-powered paraphrasing tool uses **T5-base** model for high-quality text rewording.")
+st.sidebar.write("This AI-powered paraphrasing tool uses **T5-small** model for high-quality text rewording.")
 st.sidebar.markdown("[GitHub Repo](https://github.com/charandevireddy/AI-Paraphrasing-Tool.git)")
 
 # 📌 Session State for Input and Output
@@ -102,8 +115,11 @@ user_input = st.text_area(
     key="input_text_area"
 )
 
-if user_input:
-    word_count = len(user_input.split())
+# Preprocess input text
+cleaned_input = preprocess_text(user_input)
+
+if cleaned_input:
+    word_count = len(cleaned_input.split())
     st.write(f"**📝 Word Count:** {word_count}")
 
 # 📌 Buttons for Actions
@@ -111,9 +127,9 @@ col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     if st.button("🔄 Paraphrase"):
-        if user_input.strip():
+        if cleaned_input.strip():
             with st.spinner("⏳ Generating paraphrase..."):
-                paraphrased_text = paraphrase_text(user_input)
+                paraphrased_text = paraphrase_text(cleaned_input)
                 st.session_state["paraphrased_output"] = paraphrased_text
         else:
             st.warning("⚠️ Please enter some text to paraphrase.")
