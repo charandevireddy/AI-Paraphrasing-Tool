@@ -1,28 +1,23 @@
 import streamlit as st
 import torch
-import asyncio
+import nltk
 import pyperclip
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
-# 🔧 Fix for "RuntimeError: no running event loop"
-try:
-    asyncio.set_event_loop(asyncio.new_event_loop())
-except RuntimeError:
-    pass
+from nltk.tokenize import sent_tokenize
+from transformers import BartForConditionalGeneration, BartTokenizer
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Initialize session state variables
-if "output" not in st.session_state:
-    st.session_state["output"] = ""
+# Download NLTK tokenizer (punkt)
+nltk.download('punkt')
 
 # Load the paraphrasing model
 @st.cache_resource
 def load_model():
-    model_name = "humarin/chatgpt_paraphraser_on_T5_base"
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model_name = "facebook/bart-large-cnn"
+    model = BartForConditionalGeneration.from_pretrained(model_name)
+    tokenizer = BartTokenizer.from_pretrained(model_name)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
@@ -33,11 +28,11 @@ model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = [s.strip() for s in text.split(".") if s.strip()]  # Simple sentence splitting
+    sentences = sent_tokenize(text)
     paraphrased_sentences = []
 
     for sentence in sentences:
-        input_text = f"paraphrase: {sentence} </s>"
+        input_text = f"paraphrase this: {sentence}"
         encoding = tokenizer.encode_plus(
             input_text, return_tensors="pt", padding="max_length", max_length=128, truncation=True
         ).to(device)
@@ -46,11 +41,13 @@ def paraphrase_text(text):
             output = model.generate(
                 input_ids=encoding["input_ids"],
                 attention_mask=encoding["attention_mask"],
-                max_length=128,
+                max_length=256,
                 num_return_sequences=1,
                 do_sample=True,
-                top_k=40,
-                top_p=0.90
+                top_k=10,
+                top_p=0.9,
+                temperature=0.7
+
             )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -59,7 +56,7 @@ def paraphrase_text(text):
     return " ".join(paraphrased_sentences)
 
 # Streamlit app layout
-st.title("AI Paraphrasing Tool")
+st.title("Paraphrasing Tool")
 st.write("Enter a paragraph below to generate a paraphrased version.")
 
 # Sidebar for instructions
@@ -82,7 +79,6 @@ with col1:
 
 with col2:
     if st.button("Clear Text"):
-        st.session_state["output"] = ""
         st.experimental_rerun()  # Clears the input field
 
 # Generate paraphrased text
@@ -92,16 +88,16 @@ if st.button("Paraphrase"):
         output_word_count = len(paraphrased_output.split())
 
         st.subheader("Paraphrased Text:")
-        st.text_area("Output", value=paraphrased_output, height=150, key="output_text")
+        st.text_area("Output", value=paraphrased_output, height=150, key="output")
         st.write(f"**Paraphrased Word Count:** {output_word_count}")
 
-        # Store paraphrased text in session state for persistence
-        st.session_state["output"] = paraphrased_output
+        # Copy text functionality
+        def copy_to_clipboard(text):
+            pyperclip.copy(text)
+            st.success("Text copied to clipboard!")
+
+        # Button to copy paraphrased text to clipboard
+        if st.button("Copy Text"):
+            copy_to_clipboard(paraphrased_output)
     else:
         st.warning("Please enter some text to paraphrase.")
-
-# Button to copy paraphrased text to clipboard
-if st.session_state["output"]:
-    if st.button("Copy Text"):
-        pyperclip.copy(st.session_state["output"])
-        st.success("Text copied to clipboard!")
