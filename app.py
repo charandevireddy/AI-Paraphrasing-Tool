@@ -3,6 +3,12 @@ import torch
 import nltk
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
+import asyncio
+
+try:
+    asyncio.get_running_loop()
+except RuntimeError:
+    asyncio.run(asyncio.sleep(0))
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
