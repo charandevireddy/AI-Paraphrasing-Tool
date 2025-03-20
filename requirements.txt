@@ -1,11 +1,5 @@
+streamlit
 torch
 transformers
-streamlit
 nltk
-pyperclip
-torchvision
-torchaudio
-tiktoken
-blobfile
 sentencepiece
-protobuf
