@@ -1,14 +1,20 @@
 import streamlit as st
 import torch
 import nltk
+import asyncio
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from nltk.tokenize import sent_tokenize
-import asyncio
 
-try:
-    asyncio.get_running_loop()
-except RuntimeError:
-    asyncio.run(asyncio.sleep(0))
+# Ensure async loop is correctly initialized
+def ensure_async_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
+loop = ensure_async_loop()
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
@@ -33,14 +39,14 @@ model, tokenizer, device = load_model()
 # Function to paraphrase text
 def paraphrase_text(text):
     try:
-        sentences = sent_tokenize(text)  # Ensure proper sentence tokenization
+        sentences = sent_tokenize(text)
         paraphrased_sentences = []
 
         for sentence in sentences:
-            if not sentence.strip():
-                continue  # Skip empty sentences
-
-            input_text = f"paraphrase: {sentence}"
+            if not sentence.strip():  # Skip empty sentences
+                continue
+            
+            input_text = f"paraphrase this: {sentence}"
             encoding = tokenizer.encode_plus(
                 input_text, return_tensors="pt", padding="max_length", max_length=256, truncation=True
             ).to(device)
@@ -52,10 +58,10 @@ def paraphrase_text(text):
                     max_length=256,
                     num_return_sequences=1,
                     do_sample=True,
-                    top_k=50,
-                    top_p=0.95,
+                    top_k=10,
+                    top_p=0.9,
                     temperature=0.7,
-                    repetition_penalty=3.0  # Higher penalty to reduce repeated words
+                    repetition_penalty=2.5  # Prevents repetitive outputs
                 )
 
             paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
