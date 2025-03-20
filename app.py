@@ -11,8 +11,12 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# ✅ Ensure NLTK punkt is downloaded
-nltk.download('punkt')
+# ✅ Ensure NLTK punkt and punkt_tab are downloaded
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')  # Download the punkt tokenizer
+    nltk.download('punkt_tab')  # Download the punkt_tab resource
 
 # ✅ Load the paraphrasing model
 @st.cache_resource
