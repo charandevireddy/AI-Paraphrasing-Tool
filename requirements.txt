@@ -5,3 +5,5 @@ nltk
 sentencepiece
 protobuf
 asyncio
+punkt
+punkt_tab
