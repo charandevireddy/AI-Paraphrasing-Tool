@@ -9,3 +9,4 @@ tiktoken
 blobfile
 sentencepiece
 protobuf
+pytorch
