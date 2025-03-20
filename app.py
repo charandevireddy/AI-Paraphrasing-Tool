@@ -2,13 +2,13 @@ import streamlit as st
 import torch
 import nltk
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from nltk.tokenize import sent_tokenize
+
+# ✅ Fix missing NLTK resources
+nltk.download('punkt')
+nltk.download('punkt_tab')  # Ensure 'punkt_tab' is available
 
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
-
-# Download NLTK tokenizer (punkt)
-nltk.download('punkt')
 
 # Load the paraphrasing model
 @st.cache_resource
@@ -27,7 +27,9 @@ model, tokenizer, device = load_model()
 # Function to paraphrase text
 def paraphrase_text(text):
     try:
-        sentences = sent_tokenize(text)
+        # ✅ Alternative to NLTK's sent_tokenize (if NLTK fails)
+        sentences = nltk.tokenize.sent_tokenize(text) if 'punkt_tab' in nltk.data.find("tokenizers/") else text.split(". ")
+
         paraphrased_sentences = []
 
         for sentence in sentences:
@@ -52,8 +54,13 @@ def paraphrase_text(text):
             paraphrased_sentences.append(paraphrased_sentence)
 
         return " ".join(paraphrased_sentences)
+
     except Exception as e:
         return f"❌ Error in paraphrasing: {str(e)}"
+
+# Streamlit app layout
+st.title("🚀 AI Paraphrasing Tool")
+st.write("Enter a paragraph below to generate a **paraphrased version** using AI.")
 
 # Sidebar with instructions
 st.sidebar.header("📌 Instructions")
@@ -69,15 +76,8 @@ st.sidebar.header("🔗 About This App")
 st.sidebar.write("This AI-powered paraphrasing tool uses **T5-base** model for high-quality text rewording.")
 st.sidebar.markdown("[GitHub Repo](https://github.com/charandevireddy/AI-Paraphrasing-Tool.git)")
 
-# Streamlit app layout
-st.title("🚀 AI Paraphrasing Tool")
-st.write("Enter a paragraph below to generate a **paraphrased version** using AI.")
-
-# User input for text (Using session state to manage clearing input)
-if "user_input" not in st.session_state:
-    st.session_state["user_input"] = ""
-
-user_input = st.text_area("✍️ Enter Text", height=200, placeholder="Type or paste your text here...", key="user_input")
+# User input for text
+user_input = st.text_area("✍️ Enter Text", height=200, placeholder="Type or paste your text here...")
 
 if user_input:
     word_count = len(user_input.split())
@@ -88,7 +88,7 @@ col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     if st.button("🔄 Clear Text"):
-        st.session_state["user_input"] = ""  # Resets input without rerunning the whole app
+        st.experimental_rerun()  # Clears the input field
 
 with col2:
     if st.button("✨ Paraphrase"):
@@ -98,11 +98,19 @@ with col2:
                 output_word_count = len(paraphrased_output.split())
 
             st.subheader("📄 Paraphrased Text:")
-            st.code(paraphrased_output, language="text")  # Proper text box for output
+            st.markdown(f"```{paraphrased_output}```")  # Nicely formatted output
             st.write(f"**🔢 Paraphrased Word Count:** {output_word_count}")
 
-            # ✅ Streamlit native Copy button (works without JavaScript)
-            st.button("📋 Copy to Clipboard", on_click=lambda: st.session_state.update({"copy_text": paraphrased_output}))
-
+            # JavaScript-based Copy to Clipboard functionality
+            copy_code = f"""
+            <script>
+            function copyText() {{
+                navigator.clipboard.writeText("{paraphrased_output}");
+                alert("Text copied to clipboard!");
+            }}
+            </script>
+            <button onclick="copyText()">📋 Copy Text</button>
+            """
+            st.markdown(copy_code, unsafe_allow_html=True)
         else:
             st.warning("⚠️ Please enter some text to paraphrase.")
