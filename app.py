@@ -39,12 +39,11 @@ def paraphrase_text(text):
                 input_ids=encoding["input_ids"],
                 attention_mask=encoding["attention_mask"],
                 max_length=256,
-                min_length=50,  # Ensures meaningful output
                 num_return_sequences=1,
                 do_sample=True,
-                top_k=50,  # Increase for better diversity
+                top_k=50,
                 top_p=0.95,
-                temperature=0.8,
+                temperature=0.7,
             )
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -53,56 +52,38 @@ def paraphrase_text(text):
     return " ".join(paraphrased_sentences)
 
 # Streamlit UI
-st.title("📝 AI Paraphrasing Tool")
-st.write("Enter a paragraph below to generate a paraphrased version.")
+st.title("AI Paraphrasing Tool")
+st.write("Enter text below and click 'Paraphrase' to get a paraphrased version.")
 
-# Sidebar Instructions
-st.sidebar.header("📌 Instructions")
+# Sidebar for instructions
+st.sidebar.header("Instructions")
 st.sidebar.write(
     "1. Enter text in the box.\n"
-    "2. Click **'Paraphrase'** to generate a new version.\n"
-    "3. Click **'Clear Text'** to reset the input.\n"
-    "4. Click **'Copy Text'** to copy the paraphrased output."
+    "2. Click 'Paraphrase' to generate a paraphrased version.\n"
+    "3. Click 'Clear Text' to reset the input field.\n"
+    "4. Copy the paraphrased text using the 'Copy' button."
 )
 
-# User Input
-user_input = st.text_area("Enter Text:", height=150)
-word_count = len(user_input.split()) if user_input else 0
-st.write(f"**Word Count:** {word_count}")
+# User input
+col1, col2 = st.columns([2, 1])
 
-# Buttons Layout
-col1, col2, col3 = st.columns([1, 1, 1])
-
-# Clear Text Button
 with col1:
+    user_input = st.text_area("Enter Text", height=150)
+    word_count = len(user_input.split()) if user_input.strip() else 0
+    st.write(f"**Word Count:** {word_count}")
+
+with col2:
     if st.button("Clear Text"):
         st.experimental_rerun()
 
-# Paraphrase Button
-paraphrased_output = ""
-with col2:
-    if st.button("Paraphrase"):
-        if user_input.strip():
-            paraphrased_output = paraphrase_text(user_input)
-            output_word_count = len(paraphrased_output.split())
+# Generate paraphrased text
+if st.button("Paraphrase"):
+    if user_input.strip():
+        paraphrased_output = paraphrase_text(user_input)
+        output_word_count = len(paraphrased_output.split())
 
-            st.subheader("🔄 Paraphrased Text:")
-            st.text_area("Output", value=paraphrased_output, height=150, key="output")
-            st.write(f"**Paraphrased Word Count:** {output_word_count}")
-        else:
-            st.warning("⚠️ Please enter some text to paraphrase.")
-
-# Copy Text Button (JavaScript-Based Copy)
-if paraphrased_output:
-    with col3:
-        copy_script = f"""
-        <script>
-        function copyText() {{
-            var text = document.getElementById("output").value;
-            navigator.clipboard.writeText(text);
-            alert("Text copied to clipboard!");
-        }}
-        </script>
-        <button onclick="copyText()">Copy Text</button>
-        """
-        st.markdown(copy_script, unsafe_allow_html=True)
+        st.subheader("Paraphrased Text:")
+        st.text_area("Output", value=paraphrased_output, height=150, key="output")
+        st.write(f"**Paraphrased Word Count:** {output_word_count}")
+    else:
+        st.warning("Please enter text to paraphrase.")
