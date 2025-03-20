@@ -8,12 +8,8 @@ import asyncio
 try:
     loop = asyncio.get_running_loop()
 except RuntimeError:
-    loop = None
-
-if loop and loop.is_running():
-    pass  # Event loop is already running
-else:
-    asyncio.run(asyncio.sleep(0))  # Ensure an event loop starts
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
 # ✅ Ensure NLTK punkt is downloaded
 nltk.download('punkt')
