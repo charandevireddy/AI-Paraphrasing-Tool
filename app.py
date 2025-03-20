@@ -4,13 +4,13 @@ import nltk
 from transformers import BartForConditionalGeneration, BartTokenizer
 from nltk.tokenize import sent_tokenize
 
+# ✅ Download missing NLTK tokenizer data
+nltk.download("punkt")
+
 # Set Streamlit page configuration
 st.set_page_config(page_title="AI Paraphrasing Tool", layout="centered")
 
-# Download NLTK tokenizer
-nltk.download("punkt")
-
-# Load the paraphrasing model
+# ✅ Load the paraphrasing model with caching to optimize performance
 @st.cache_resource
 def load_model():
     model_name = "facebook/bart-large-cnn"
@@ -22,11 +22,12 @@ def load_model():
 
     return model, tokenizer, device
 
+# Load the model and tokenizer
 model, tokenizer, device = load_model()
 
 # Function to paraphrase text
 def paraphrase_text(text):
-    sentences = sent_tokenize(text)
+    sentences = sent_tokenize(text)  # ✅ NLTK's punkt tokenizer will now work
     paraphrased_sentences = []
 
     for sentence in sentences:
@@ -35,16 +36,7 @@ def paraphrase_text(text):
         ).to(device)
 
         with torch.no_grad():
-            output = model.generate(
-                input_ids=encoding["input_ids"],
-                attention_mask=encoding["attention_mask"],
-                max_length=256,
-                num_return_sequences=1,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95,
-                temperature=0.7,
-            )
+            output = model.generate(**encoding, max_length=256, num_return_sequences=1)
 
         paraphrased_sentence = tokenizer.decode(output[0], skip_special_tokens=True)
         paraphrased_sentences.append(paraphrased_sentence)
@@ -52,38 +44,21 @@ def paraphrase_text(text):
     return " ".join(paraphrased_sentences)
 
 # Streamlit UI
-st.title("AI Paraphrasing Tool")
-st.write("Enter text below and click 'Paraphrase' to get a paraphrased version.")
-
-# Sidebar for instructions
-st.sidebar.header("Instructions")
-st.sidebar.write(
-    "1. Enter text in the box.\n"
-    "2. Click 'Paraphrase' to generate a paraphrased version.\n"
-    "3. Click 'Clear Text' to reset the input field.\n"
-    "4. Copy the paraphrased text using the 'Copy' button."
-)
+st.title("📝 AI Paraphrasing Tool")
+st.write("Enter text below and click 'Paraphrase' to generate a rewritten version.")
 
 # User input
-col1, col2 = st.columns([2, 1])
+user_input = st.text_area("Enter text to paraphrase:", height=150)
 
-with col1:
-    user_input = st.text_area("Enter Text", height=150)
-    word_count = len(user_input.split()) if user_input.strip() else 0
-    st.write(f"**Word Count:** {word_count}")
-
-with col2:
-    if st.button("Clear Text"):
-        st.experimental_rerun()
-
-# Generate paraphrased text
 if st.button("Paraphrase"):
     if user_input.strip():
-        paraphrased_output = paraphrase_text(user_input)
-        output_word_count = len(paraphrased_output.split())
-
-        st.subheader("Paraphrased Text:")
-        st.text_area("Output", value=paraphrased_output, height=150, key="output")
-        st.write(f"**Paraphrased Word Count:** {output_word_count}")
+        with st.spinner("Paraphrasing..."):
+            paraphrased_output = paraphrase_text(user_input)
+        st.subheader("🔹 Paraphrased Text:")
+        st.write(paraphrased_output)
     else:
-        st.warning("Please enter text to paraphrase.")
+        st.warning("⚠️ Please enter text before clicking 'Paraphrase'.")
+
+# Footer
+st.markdown("---")
+st.markdown("🔹 Created with [Streamlit](https://streamlit.io/) and [Hugging Face Transformers](https://huggingface.co/).")
