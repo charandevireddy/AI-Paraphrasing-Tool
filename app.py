@@ -86,8 +86,21 @@ st.sidebar.header("🔗 About This App")
 st.sidebar.write("This AI-powered paraphrasing tool uses **T5-base** model for high-quality text rewording.")
 st.sidebar.markdown("[GitHub Repo](https://github.com/charandevireddy/AI-Paraphrasing-Tool.git)")
 
+# 📌 Session State for Input and Output
+if "user_input" not in st.session_state:
+    st.session_state["user_input"] = ""
+
+if "paraphrased_output" not in st.session_state:
+    st.session_state["paraphrased_output"] = ""
+
 # 📌 User Input
-user_input = st.text_area("✍️ Enter Text", height=200, placeholder="Type or paste your text here...")
+user_input = st.text_area(
+    "✍️ Enter Text",
+    height=200,
+    placeholder="Type or paste your text here...",
+    value=st.session_state["user_input"],
+    key="input_text_area"
+)
 
 if user_input:
     word_count = len(user_input.split())
@@ -98,14 +111,42 @@ col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
     if st.button("🔄 Paraphrase"):
-        with st.spinner("Processing..."):
-            paraphrased_text = paraphrase_text(user_input)
-            st.text_area("✨ Paraphrased Output", value=paraphrased_text, height=200)
+        if user_input.strip():
+            with st.spinner("⏳ Generating paraphrase..."):
+                paraphrased_text = paraphrase_text(user_input)
+                st.session_state["paraphrased_output"] = paraphrased_text
+        else:
+            st.warning("⚠️ Please enter some text to paraphrase.")
 
 with col2:
     if st.button("🧹 Clear Text"):
-        user_input = ""
+        st.session_state["user_input"] = ""
+        st.session_state["paraphrased_output"] = ""
+        st.experimental_rerun()
 
 with col3:
     if st.button("📋 Copy Text"):
-        st.write("✅ Copied to clipboard!")
+        if st.session_state["paraphrased_output"]:
+            st.markdown(
+                f"""
+                <script>
+                navigator.clipboard.writeText(`{st.session_state["paraphrased_output"]}`);
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
+            st.success("✅ Copied to clipboard!")
+        else:
+            st.warning("⚠️ No paraphrased text to copy.")
+
+# 📌 Display Paraphrased Output
+if st.session_state["paraphrased_output"]:
+    st.subheader("✨ Paraphrased Output")
+    st.text_area(
+        "Paraphrased Text",
+        value=st.session_state["paraphrased_output"],
+        height=200,
+        key="output_text_area"
+    )
+    output_word_count = len(st.session_state["paraphrased_output"].split())
+    st.write(f"**🔢 Paraphrased Word Count:** {output_word_count}")
